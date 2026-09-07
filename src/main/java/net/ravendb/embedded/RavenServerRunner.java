@@ -140,6 +140,16 @@ class RavenServerRunner {
     }
 
     private static boolean processBuilderEscapesQuotesItself() {
+        // Java 8 eats embedded quotes in every mode - its strict path predates the self-escaping
+        // verification - so escaping must never be skipped there. Measured on 8u202.
+        if ("1.8".equals(System.getProperty("java.specification.version"))) {
+            return false;
+        }
+
+        // From Java 9 on the property decides when it is set, and only the value "false" selects the
+        // strict path; with the property unset, the presence of a SecurityManager decides. Both
+        // branches are load-bearing: "prop=true + SecurityManager" is the legacy path (must escape),
+        // while "prop unset + SecurityManager" is the strict one (must not).
         String value = System.getProperty("jdk.lang.Process.allowAmbiguousCommands");
         if (value == null) {
             return isSecurityManagerPresent();
